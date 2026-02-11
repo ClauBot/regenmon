@@ -1,0 +1,27 @@
+@import 'nes.css/css/nes.min.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  color: #212529;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  overflow-x: hidden;
+  background-color: #0a0a0f !important;
+}
+
+#root {
+  width: 100%;
+  max-width: 600px;
+  margin: auto 0;
+}
