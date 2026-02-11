@@ -5,6 +5,7 @@ import WorldBackground from './WorldBackground';
 import HatchingAnimation from './HatchingAnimation';
 import RegenmonCharacter from './RegenmonCharacter';
 import SpeciesDetail from './SpeciesDetail';
+import WorldMap from './WorldMap';
 
 interface DashboardProps {
   onClose: () => void;
@@ -25,6 +26,7 @@ export default function Dashboard({ onClose, musicToggle, isMusicPlaying }: Dash
   const [demoHatching, setDemoHatching] = useState(false);
   const [demoSpecies, setDemoSpecies] = useState<RegenmonSpecies | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<RegenmonSpecies | null>(null);
+  const [showWorldMap, setShowWorldMap] = useState(false);
 
   const startHatchDemo = () => {
     const species = SPECIES_LIST[Math.floor(Math.random() * SPECIES_LIST.length)];
@@ -36,6 +38,11 @@ export default function Dashboard({ onClose, musicToggle, isMusicPlaying }: Dash
     setDemoHatching(false);
     setDemoSpecies(null);
   }, []);
+
+  // World map overlay
+  if (showWorldMap) {
+    return <WorldMap onClose={() => setShowWorldMap(false)} />;
+  }
 
   // Species detail overlay
   if (selectedSpecies) {
@@ -214,13 +221,24 @@ export default function Dashboard({ onClose, musicToggle, isMusicPlaying }: Dash
           );
         })}
 
+        {/* World Map button */}
+        <div style={{ textAlign: 'center', marginTop: '2rem', marginBottom: '1.5rem' }}>
+          <button
+            type="button"
+            className="nes-btn is-primary"
+            style={{ fontSize: '0.55rem' }}
+            onClick={() => setShowWorldMap(true)}
+          >
+            Mapa del Mundo
+          </button>
+        </div>
+
         {/* Section 2: Worlds */}
         <h2
           style={{
             fontSize: '0.75rem',
             color: '#ccc',
             marginBottom: '1rem',
-            marginTop: '2rem',
             textAlign: 'center',
           }}
         >
