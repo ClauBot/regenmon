@@ -1,130 +1,93 @@
-import { useState, useEffect } from 'react';
-import type { RegenmonSpecies, RegenmonType } from '../types';
-import { SPECIES_LIST, TYPE_CONFIG } from '../constants';
-import RegenmonCharacter from './RegenmonCharacter';
-
-interface AgentInfo {
-  id: string;
-  label: string;
-  zone: string;
-  task: string;
-  species: RegenmonSpecies;
-  realmType: RegenmonType;
-  logs: string[];
-  progress: number;
-}
-
-const AGENT_DEFS: Omit<AgentInfo, 'logs' | 'progress'>[] = [
-  {
-    id: 'a87fff4',
-    label: 'Arquitecto del Nexo',
-    zone: 'El Nexo Central',
-    task: 'Diseñando la estructura del Overworld...',
-    species: SPECIES_LIST.find((s) => s.id === 'seed-03')!,
-    realmType: 'seed',
-  },
-  {
-    id: 'a6e15cf',
-    label: 'Cartógrafa Estelar',
-    zone: 'Observatorio Celeste',
-    task: 'Estudiando patrones de mapas Zelda...',
-    species: SPECIES_LIST.find((s) => s.id === 'spark-04')!,
-    realmType: 'spark',
-  },
-  {
-    id: 'a135363',
-    label: 'Guardián del Bosque',
-    zone: 'Arboleda Ancestral',
-    task: 'Construyendo zonas del Bosque Eterno...',
-    species: SPECIES_LIST.find((s) => s.id === 'seed-07')!,
-    realmType: 'seed',
-  },
-  {
-    id: 'a82a650',
-    label: 'Arquitecto Coralino',
-    zone: 'Ciudad Coral',
-    task: 'Edificando el Océano Profundo...',
-    species: SPECIES_LIST.find((s) => s.id === 'drop-05')!,
-    realmType: 'drop',
-  },
-  {
-    id: 'a3c4442',
-    label: 'Fuerza Nova',
-    zone: 'Nebulosa Nova',
-    task: 'Mapeando el Cosmos Infinito...',
-    species: SPECIES_LIST.find((s) => s.id === 'spark-05')!,
-    realmType: 'spark',
-  },
-];
-
-const ZONE_ACTIONS: Record<string, string[]> = {
-  'El Nexo Central': [
-    'Trazando caminos entre reinos...',
-    'Colocando el Monumento de la Profecía...',
-    'Conectando portales dimensionales...',
-    'Diseñando la plaza central...',
-    'Grabando runas ancestrales...',
-  ],
-  'Observatorio Celeste': [
-    'Catalogando constelaciones...',
-    'Dibujando el mapa del universo...',
-    'Analizando grids de pantalla...',
-    'Calculando transiciones entre zonas...',
-    'Estudiando calabozos clásicos...',
-  ],
-  'Arboleda Ancestral': [
-    'Plantando árboles milenarios...',
-    'Excavando la Gruta Micélica...',
-    'Sembrando el Jardín del Edén...',
-    'Levantando el Cañaveral del Cielo...',
-    'Trazando el Desierto de Espinas...',
-  ],
-  'Ciudad Coral': [
-    'Construyendo arrecifes vivientes...',
-    'Abriendo la Caverna de Hielo...',
-    'Llenando el Mar de Burbujas...',
-    'Canalizando corrientes fronterizas...',
-    'Sumergiendo al Abismo Luminoso...',
-  ],
-  'Nebulosa Nova': [
-    'Encendiendo estrellas nuevas...',
-    'Forjando la Corona del Sol...',
-    'Iluminando el Santuario Lunar...',
-    'Trazando el Sendero de Cometa...',
-    'Estabilizando la Órbita Final...',
-  ],
-};
+import { useState, useCallback } from 'react';
+import { useAgentState } from '../hooks/useAgentState';
+import { useAgentSimulation } from '../hooks/useAgentSimulation';
+import ZeldaWorldMap from './ZeldaWorldMap';
+import ExploreMode from './ExploreMode';
+import AgentPanel from './AgentPanel';
+import AgentChat from './AgentChat';
+import ProgressSummary from './ProgressSummary';
+import { ZONE_MAP, REALM_COLORS } from '../worldData';
+import { SPECIES_LIST } from '../constants';
+import type { ZoneTask, Agent, DashboardMode } from '../agentTypes';
+import type { MapZone } from '../worldData';
 
 interface AgentDashboardProps {
   onClose: () => void;
 }
 
-export default function AgentDashboard({ onClose }: AgentDashboardProps) {
-  const [agents, setAgents] = useState<AgentInfo[]>(() =>
-    AGENT_DEFS.map((def) => ({
-      ...def,
-      logs: [def.task],
-      progress: 15 + Math.floor(Math.random() * 20),
-    })),
-  );
+type PanelView = 'panel' | 'chat' | 'zone';
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAgents((prev) =>
-        prev.map((agent) => {
-          const actions = ZONE_ACTIONS[agent.zone] ?? [agent.task];
-          const newAction = actions[Math.floor(Math.random() * actions.length)];
-          const newProgress = Math.min(agent.progress + Math.floor(Math.random() * 8) + 1, 95);
-          return {
-            ...agent,
-            logs: [...agent.logs.slice(-3), newAction],
-            progress: newProgress,
-          };
-        }),
-      );
-    }, 3500);
-    return () => clearInterval(interval);
+const MODE_LABELS: Record<DashboardMode, { label: string; icon: string }> = {
+  observe: { label: 'Observar', icon: '👁' },
+  direct: { label: 'Dirigir', icon: '🎯' },
+  explore: { label: 'Explorar', icon: '🎮' },
+};
+
+export default function AgentDashboard({ onClose }: AgentDashboardProps) {
+  const {
+    state,
+    stateRef,
+    moveAgent,
+    assignTask,
+    restAgent,
+    sendChat,
+    setDashboardMode,
+    setPlayerSpecies,
+    movePlayer,
+    toggleAgentAuto,
+    updateSimulation,
+    resetState,
+  } = useAgentState();
+
+  useAgentSimulation(stateRef, updateSimulation);
+
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [panelView, setPanelView] = useState<PanelView>('panel');
+
+  const selectedAgent = state.agents.find((a) => a.id === selectedAgentId) ?? null;
+
+  const handleSelectAgent = useCallback((id: string | null) => {
+    setSelectedAgentId(id);
+    setSelectedZoneId(null);
+    setPanelView('panel');
   }, []);
+
+  const handleSelectZone = useCallback((id: string | null) => {
+    setSelectedZoneId(id);
+    // In direct mode: click zone + selected agent = move agent there
+    if (id && selectedAgentId && state.dashboardMode === 'direct') {
+      moveAgent(selectedAgentId, id);
+      return;
+    }
+    if (id && !selectedAgentId) {
+      setPanelView('zone');
+    }
+  }, [selectedAgentId, state.dashboardMode, moveAgent]);
+
+  const handleOpenChat = useCallback(() => {
+    setPanelView('chat');
+  }, []);
+
+  const handleBackFromChat = useCallback(() => {
+    setPanelView('panel');
+  }, []);
+
+  // Zone info panel
+  const zoneTasks = selectedZoneId
+    ? state.tasks.filter((t) => t.zoneId === selectedZoneId)
+    : [];
+  const zoneInfo = selectedZoneId ? ZONE_MAP.get(selectedZoneId) : null;
+
+  // Stats
+  const completedCount = state.tasks.filter((t) => t.status === 'completed').length;
+  const workingCount = state.agents.filter((a) => a.status === 'working').length;
+  const travelingCount = state.agents.filter((a) => a.status === 'traveling').length;
+  const restingCount = state.agents.filter((a) => a.status === 'resting').length;
+  const idleCount = state.agents.filter((a) => a.status === 'idle').length;
+
+  const isExploreMode = state.dashboardMode === 'explore';
+  const needsSpeciesSelection = isExploreMode && !state.playerState.speciesId;
 
   return (
     <div
@@ -132,468 +95,430 @@ export default function AgentDashboard({ onClose }: AgentDashboardProps) {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        backgroundColor: '#030306',
+        backgroundColor: '#111',
         overflowY: 'auto',
         fontFamily: '"Press Start 2P", cursive',
       }}
     >
-      <style>{`
-        @keyframes ag-pulse { 0%,100%{opacity:1}50%{opacity:.5} }
-        @keyframes ag-walk { 0%,100%{transform:translateX(0)}50%{transform:translateX(8px)} }
-        @keyframes ag-float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)} }
-        @keyframes ag-scan { 0%{left:-10%}100%{left:110%} }
-        @keyframes ag-spark { 0%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0) translateY(-20px)} }
-      `}</style>
-
       {/* Header */}
       <div
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 10,
-          background: 'linear-gradient(to bottom, #030306 60%, transparent)',
-          padding: '0.75rem 1rem 1.5rem',
+          zIndex: 30,
+          backgroundColor: '#111',
+          borderBottom: '2px solid #333',
+          padding: '0.5rem 0.75rem',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'center',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '0.7rem', margin: 0, color: '#FFC107' }}>
-            Estado de los Agentes
+          <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#FFC107' }}>
+            Centro de Agentes
           </h1>
-          <p style={{ fontSize: '0.3rem', color: '#555', margin: '0.3rem 0 0' }}>
-            Guardianes construyendo el mundo en tiempo real
+          <p style={{ fontSize: '0.6rem', color: '#888', margin: '0.2rem 0 0' }}>
+            {workingCount} trabajando · {travelingCount} viajando · {restingCount} descansando · {idleCount} libres · {completedCount}/{state.tasks.length} tareas
           </p>
         </div>
-        <button
-          type="button"
-          className="nes-btn"
-          style={{ fontSize: '0.5rem', padding: '0.2rem 0.5rem' }}
-          onClick={onClose}
-        >
-          Volver
-        </button>
-      </div>
-
-      {/* Agent cards */}
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 1rem 2rem' }}>
-        {agents.map((agent) => (
-          <AgentCard key={agent.id} agent={agent} />
-        ))}
-
-        {/* Summary footer */}
-        <div
-          style={{
-            marginTop: '1.5rem',
-            padding: '0.75rem',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            border: '1px solid #1a1a1a',
-            borderRadius: '8px',
-            display: 'flex',
-            justifyContent: 'space-around',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-          }}
-        >
-          <StatBlock label="Agentes Activos" value="5" color="#FFC107" />
-          <StatBlock label="Reinos" value="3" color="#4CAF50" />
-          <StatBlock label="Guardianes" value="27" color="#2196F3" />
-          <StatBlock
-            label="Progreso Total"
-            value={`${Math.round(agents.reduce((s, a) => s + a.progress, 0) / agents.length)}%`}
-            color="#FF5722"
-          />
+        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+          {/* Mode tabs */}
+          <div style={{ display: 'flex', gap: '0.3rem' }}>
+            {(Object.keys(MODE_LABELS) as DashboardMode[]).map((mode) => {
+              const isActive = state.dashboardMode === mode;
+              const info = MODE_LABELS[mode];
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setDashboardMode(mode)}
+                  style={{
+                    fontSize: '0.65rem',
+                    padding: '0.3rem 0.5rem',
+                    backgroundColor: isActive ? '#333' : '#1a1a1a',
+                    color: isActive ? '#FFC107' : '#666',
+                    border: `1px solid ${isActive ? '#FFC107' : '#333'}`,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontFamily: '"Press Start 2P", cursive',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {info.icon} {info.label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="nes-btn is-warning"
+            style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+            onClick={resetState}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className="nes-btn is-error"
+            style={{ fontSize: '0.7rem', padding: '0.3rem 0.5rem' }}
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
         </div>
       </div>
+
+      {/* Species selection for explore mode */}
+      {needsSpeciesSelection && (
+        <SpeciesSelector onSelect={(id) => setPlayerSpecies(id)} />
+      )}
+
+      {/* Main content */}
+      {!needsSpeciesSelection && (
+        <div
+          className="agent-dashboard-main"
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0.5rem',
+            gap: '0.5rem',
+            minHeight: 'calc(100vh - 80px)',
+          }}
+        >
+          {/* Left: Map or Explore view */}
+          <div style={{ flex: '3 1 0%', minWidth: 0 }}>
+            {isExploreMode ? (
+              <ExploreMode
+                agents={state.agents}
+                tasks={state.tasks}
+                playerState={state.playerState}
+                onMovePlayer={movePlayer}
+                onSelectAgent={(id) => handleSelectAgent(id)}
+                selectedAgentId={selectedAgentId}
+              />
+            ) : (
+              <>
+                <ZeldaWorldMap
+                  agents={state.agents}
+                  tasks={state.tasks}
+                  selectedAgentId={selectedAgentId}
+                  selectedZoneId={selectedZoneId}
+                  onSelectAgent={handleSelectAgent}
+                  onSelectZone={handleSelectZone}
+                />
+
+                {/* Agent quick-select bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.4rem',
+                    marginTop: '0.3rem',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {state.agents.map((agent) => {
+                    const isSelected = selectedAgentId === agent.id;
+                    return (
+                      <button
+                        key={agent.id}
+                        type="button"
+                        onClick={() => handleSelectAgent(isSelected ? null : agent.id)}
+                        style={{
+                          fontSize: '0.55rem',
+                          padding: '0.2rem 0.35rem',
+                          backgroundColor: isSelected ? '#333' : '#1a1a1a',
+                          color: isSelected ? '#fff' : '#888',
+                          border: `1px solid ${isSelected ? '#FFC107' : '#333'}`,
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontFamily: '"Press Start 2P", cursive',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {agent.name}
+                        <span style={{
+                          color: agent.status === 'working' ? '#4CAF50' : agent.status === 'traveling' ? '#FFC107' : agent.status === 'resting' ? '#9C27B0' : '#666',
+                          marginLeft: 4,
+                        }}>
+                          {agent.status === 'working' ? '\u25CF' : agent.status === 'traveling' ? '\u25B6' : agent.status === 'resting' ? '\uD83D\uDCA4' : '\u2B50'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right: Panel */}
+          <div
+            style={{
+              flex: '2 1 0%',
+              minWidth: 0,
+              maxHeight: 'calc(100vh - 100px)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {selectedAgent && panelView === 'chat' ? (
+              <AgentChat
+                agent={selectedAgent}
+                chatHistory={state.chatHistory}
+                tasks={state.tasks}
+                onSendChat={sendChat}
+                onMoveAgent={moveAgent}
+                onAssignTask={assignTask}
+                onRestAgent={restAgent}
+                onBack={handleBackFromChat}
+              />
+            ) : selectedAgent && panelView === 'panel' ? (
+              <AgentPanel
+                agent={selectedAgent}
+                tasks={state.tasks}
+                onAssignTask={assignTask}
+                onMoveAgent={moveAgent}
+                onRestAgent={restAgent}
+                onOpenChat={handleOpenChat}
+                onToggleAuto={toggleAgentAuto}
+                isDirectMode={state.dashboardMode === 'direct'}
+              />
+            ) : selectedZoneId && zoneInfo ? (
+              <ZoneInfoPanel zone={zoneInfo} tasks={zoneTasks} agents={state.agents} onSelectAgent={handleSelectAgent} />
+            ) : (
+              <div
+                style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #333',
+                  borderRadius: 8,
+                  padding: '0.5rem',
+                  textAlign: 'center',
+                  color: '#555',
+                  fontSize: '0.65rem',
+                  lineHeight: 2,
+                }}
+              >
+                Selecciona un agente o zona en el mapa
+                <br />
+                para ver detalles y asignar tareas.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Progress summary */}
+      {!needsSpeciesSelection && (
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0.5rem 1rem' }}>
+          <ProgressSummary tasks={state.tasks} agents={state.agents} />
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .agent-dashboard-main {
+            flex-direction: column !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
-function AgentCard({ agent }: { agent: AgentInfo }) {
-  const config = TYPE_CONFIG[agent.realmType];
+// ─── Species Selector for Explore Mode ───
+
+function SpeciesSelector({ onSelect }: { onSelect: (id: string) => void }) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const types = ['seed', 'drop', 'spark'] as const;
+  const typeLabels = { seed: 'Bosque', drop: 'Océano', spark: 'Cosmos' };
+  const typeColors = { seed: '#4CAF50', drop: '#2196F3', spark: '#FFC107' };
 
   return (
     <div
       style={{
-        marginBottom: '1rem',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        border: `2px solid ${config.color}33`,
+        maxWidth: 800,
+        margin: '1rem auto',
+        padding: '0.5rem',
+        fontFamily: '"Press Start 2P", cursive',
       }}
     >
-      {/* World scene — character inside their realm */}
-      <div
-        style={{
-          position: 'relative',
-          height: 160,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Inline world background */}
-        <WorldSceneInline type={agent.realmType} />
-
-        {/* Zone label */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            fontSize: '0.3rem',
-            color: '#fff',
-            textShadow: '1px 1px 0 #000',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            padding: '0.15rem 0.3rem',
-            borderRadius: '3px',
-          }}
-        >
-          {agent.zone}
-        </div>
-
-        {/* Status badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            fontSize: '0.25rem',
-            color: '#FFC107',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem',
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            padding: '0.15rem 0.3rem',
-            borderRadius: '3px',
-          }}
-        >
-          <span
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              backgroundColor: '#FFC107',
-              animation: 'ag-pulse 1.5s ease-in-out infinite',
-            }}
-          />
-          ACTIVO
-        </div>
-
-        {/* Character walking in the scene */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            animation: 'ag-walk 4s ease-in-out infinite',
-            filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))',
-          }}
-        >
-          <div style={{ animation: 'ag-float 2.5s ease-in-out infinite' }}>
-            <RegenmonCharacter species={agent.species} size="sm" animate />
+      <h2 style={{ fontSize: '0.9rem', color: '#FFC107', textAlign: 'center', marginBottom: '0.5rem' }}>
+        Elige tu Regenmon para explorar
+      </h2>
+      <p style={{ fontSize: '0.6rem', color: '#666', textAlign: 'center', marginBottom: '0.8rem', lineHeight: 1.8 }}>
+        Camina por el mundo con WASD o flechas. Habla con los agentes que encuentres.
+      </p>
+      {types.map((type) => (
+        <div key={type} style={{ marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '0.65rem', color: typeColors[type], marginBottom: '0.3rem' }}>
+            {typeLabels[type]}
           </div>
-          {/* Work sparks around character */}
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                top: `${-5 + (i % 2) * 10}px`,
-                left: `${-12 + i * 14}px`,
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                backgroundColor: config.color,
-                animation: `ag-spark ${1.2 + i * 0.3}s ease-in-out ${i * 0.4}s infinite`,
-                pointerEvents: 'none',
-              }}
-            />
-          ))}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem' }}>
+            {SPECIES_LIST.filter((s) => s.type === type).map((species) => (
+              <button
+                key={species.id}
+                type="button"
+                onClick={() => onSelect(species.id)}
+                onMouseEnter={() => setHoveredId(species.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem',
+                  padding: '0.2rem 0.3rem',
+                  backgroundColor: hoveredId === species.id ? '#333' : '#1a1a1a',
+                  border: `1px solid ${hoveredId === species.id ? typeColors[type] : '#333'}`,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontFamily: '"Press Start 2P", cursive',
+                  color: '#ddd',
+                  fontSize: '0.55rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {species.emoji} {species.speciesName}
+              </button>
+            ))}
+          </div>
         </div>
+      ))}
+    </div>
+  );
+}
 
-        {/* Scan line */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            width: 1,
-            height: '100%',
-            background: `linear-gradient(to bottom, transparent, ${config.color}66, transparent)`,
-            animation: 'ag-scan 4s linear infinite',
-            pointerEvents: 'none',
-          }}
-        />
+// ─── Zone Info Sub-Panel ───
+
+function ZoneInfoPanel({
+  zone,
+  tasks,
+  agents,
+  onSelectAgent,
+}: {
+  zone: MapZone;
+  tasks: ZoneTask[];
+  agents: Agent[];
+  onSelectAgent: (id: string) => void;
+}) {
+  const colors = REALM_COLORS[zone.type] ?? REALM_COLORS.nexo;
+  const agentsHere = agents.filter((a) => a.currentZoneId === zone.id);
+  const pending = tasks.filter((t) => t.status === 'pending').length;
+  const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
+  const completed = tasks.filter((t) => t.status === 'completed').length;
+
+  return (
+    <div
+      style={{
+        backgroundColor: '#1a1a1a',
+        border: `2px solid ${colors.border}44`,
+        borderRadius: 8,
+        padding: '0.5rem',
+        fontFamily: '"Press Start 2P", cursive',
+        overflowY: 'auto',
+      }}
+    >
+      <h3 style={{ fontSize: '0.9rem', color: colors.text, margin: '0 0 0.3rem' }}>
+        {zone.isDungeon ? '\u2694\uFE0F ' : ''}{zone.name}
+      </h3>
+      <p style={{ fontSize: '0.55rem', color: '#888', lineHeight: 1.8, margin: '0 0 0.4rem' }}>
+        {zone.description}
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+        <StatPill label="Pendientes" value={pending} color="#888" />
+        <StatPill label="En progreso" value={inProgress} color="#FFC107" />
+        <StatPill label="Completadas" value={completed} color="#4CAF50" />
       </div>
 
-      {/* Info panel */}
-      <div style={{ backgroundColor: '#0a0a10', padding: '0.6rem' }}>
-        {/* Agent identity */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '0.4rem',
-          }}
-        >
-          <div>
-            <span style={{ fontSize: '0.4rem', color: '#fff', fontWeight: 'bold' }}>
-              {agent.species.emoji} {agent.label}
-            </span>
-            <span
-              style={{
-                fontSize: '0.3rem',
-                color: config.color,
-                marginLeft: '0.4rem',
-              }}
-            >
-              {agent.species.speciesName}
-            </span>
-          </div>
-          <span
-            style={{
-              fontSize: '0.3rem',
-              color: config.color,
-              backgroundColor: `${config.color}15`,
-              padding: '0.1rem 0.25rem',
-              borderRadius: '3px',
-            }}
-          >
-            {config.label}
-          </span>
-        </div>
-
-        {/* Log terminal */}
-        <div
-          style={{
-            backgroundColor: '#000',
-            borderRadius: '4px',
-            padding: '0.35rem 0.4rem',
-            marginBottom: '0.4rem',
-          }}
-        >
-          {agent.logs.map((log, i) => (
+      {agentsHere.length > 0 && (
+        <div style={{ marginBottom: '0.4rem' }}>
+          <div style={{ fontSize: '0.55rem', color: '#666', marginBottom: 4 }}>Agentes aquí:</div>
+          {agentsHere.map((a) => (
             <div
-              key={`${i}-${log}`}
+              key={a.id}
+              onClick={() => onSelectAgent(a.id)}
               style={{
-                fontSize: '0.28rem',
-                color: i === agent.logs.length - 1 ? config.color : '#444',
-                lineHeight: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                fontSize: '0.6rem',
+                color: '#ddd',
+                padding: '0.1rem 0.2rem',
+                cursor: 'pointer',
+                backgroundColor: '#111',
+                borderRadius: 3,
+                marginBottom: 2,
+                border: '1px solid #222',
               }}
             >
-              <span style={{ color: i === agent.logs.length - 1 ? '#888' : '#333' }}>
-                {'> '}
-              </span>
-              {log}
+              {a.name} — {a.status}
             </div>
           ))}
         </div>
+      )}
 
-        {/* Progress bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <div style={{ fontSize: '0.55rem', color: '#666', marginBottom: 4 }}>
+        Tareas ({tasks.length}):
+      </div>
+      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+        {tasks.map((task) => (
           <div
+            key={task.id}
             style={{
-              flex: 1,
-              height: 6,
-              backgroundColor: '#1a1a1a',
-              borderRadius: '3px',
-              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.15rem',
+              padding: '0.1rem 0.15rem',
+              marginBottom: 2,
+              backgroundColor: '#111',
+              borderRadius: 3,
+              border: '1px solid #1a1a1a',
             }}
           >
-            <div
+            <span
               style={{
-                height: '100%',
-                width: `${agent.progress}%`,
-                backgroundColor: config.color,
-                borderRadius: '3px',
-                transition: 'width 1.5s ease',
-                boxShadow: `0 0 8px ${config.color}66`,
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: task.status === 'completed' ? '#4CAF50' : task.status === 'in_progress' ? '#FFC107' : '#333',
+                flexShrink: 0,
               }}
             />
+            <span
+              style={{
+                fontSize: '0.55rem',
+                color: task.status === 'completed' ? '#666' : '#ddd',
+                textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {task.title}
+            </span>
+            {task.status === 'in_progress' && (
+              <span style={{ fontSize: '0.5rem', color: '#FFC107' }}>{Math.round(task.progress)}%</span>
+            )}
           </div>
-          <span style={{ fontSize: '0.3rem', color: config.color, minWidth: '2rem' }}>
-            {agent.progress}%
-          </span>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/** Compact inline world backgrounds for agent cards */
-function WorldSceneInline({ type }: { type: RegenmonType }) {
-  const base: React.CSSProperties = { position: 'absolute', inset: 0, overflow: 'hidden' };
-
-  if (type === 'seed') {
-    return (
-      <div style={{ ...base, background: 'linear-gradient(to bottom, #1a3a1a, #2d5a1e)' }}>
-        <style>{`
-          @keyframes ag-leaf { 0%{transform:translateY(-20px) rotate(0);opacity:1} 100%{transform:translateY(180px) rotate(360deg);opacity:.5} }
-        `}</style>
-        {Array.from({ length: 6 }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${10 + i * 16}%`,
-              top: -20,
-              fontSize: 12,
-              animation: `ag-leaf ${3.5 + i * 0.6}s linear ${i * 0.4}s infinite`,
-              pointerEvents: 'none',
-            }}
-          >
-            🍃
-          </div>
-        ))}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '18%',
-            background: 'linear-gradient(to bottom, #3a5a2a, #4a3a2a)',
-            borderTop: '2px solid #2a4a1a',
-          }}
-        />
-        {/* Trees in background */}
-        {[15, 40, 70, 90].map((x, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              bottom: '17%',
-              left: `${x}%`,
-              fontSize: 18 + i * 2,
-              opacity: 0.3 + i * 0.1,
-              pointerEvents: 'none',
-            }}
-          >
-            🌲
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (type === 'drop') {
-    return (
-      <div style={{ ...base, background: 'linear-gradient(to bottom, #0a1628, #0d4a6a, #1a6b8a)' }}>
-        <style>{`
-          @keyframes ag-rain { 0%{transform:translateY(-10px);opacity:0} 10%{opacity:.5} 90%{opacity:.5} 100%{transform:translateY(180px);opacity:0} }
-          @keyframes ag-bubble { 0%{transform:translateY(0) scale(1);opacity:.6} 100%{transform:translateY(-100px) scale(.5);opacity:0} }
-          @keyframes ag-wave2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        `}</style>
-        {Array.from({ length: 12 }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${3 + i * 8}%`,
-              top: 0,
-              width: 2,
-              height: `${10 + (i % 3) * 4}px`,
-              background: 'rgba(255,255,255,0.25)',
-              borderRadius: 1,
-              animation: `ag-rain ${0.5 + (i % 4) * 0.15}s linear ${i * 0.08}s infinite`,
-              pointerEvents: 'none',
-            }}
-          />
-        ))}
-        {Array.from({ length: 4 }, (_, i) => (
-          <div
-            key={`b${i}`}
-            style={{
-              position: 'absolute',
-              bottom: '20%',
-              left: `${20 + i * 20}%`,
-              fontSize: 10,
-              animation: `ag-bubble ${3 + i}s ease-out ${i * 0.8}s infinite`,
-              pointerEvents: 'none',
-            }}
-          >
-            🫧
-          </div>
-        ))}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: '-5%',
-            right: '-5%',
-            height: 25,
-            background: 'rgba(15,60,90,0.7)',
-            borderRadius: '50% 50% 0 0',
-            animation: 'ag-wave2 3s ease-in-out infinite',
-          }}
-        />
-      </div>
-    );
-  }
-
-  // spark
+function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div style={{ ...base, background: 'linear-gradient(to bottom, #08081a, #0f0a2a, #1a0a2e)' }}>
-      <style>{`
-        @keyframes ag-twinkle { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.15;transform:scale(.7)} }
-        @keyframes ag-shoot { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(120px,80px);opacity:0} }
-      `}</style>
-      {Array.from({ length: 15 }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: `${(i * 29) % 95}%`,
-            top: `${(i * 37) % 85}%`,
-            width: `${2 + (i % 3)}px`,
-            height: `${2 + (i % 3)}px`,
-            backgroundColor: i % 5 === 0 ? '#FFD700' : '#fff',
-            borderRadius: '50%',
-            animation: `ag-twinkle ${1.2 + (i % 4) * 0.4}s ease-in-out ${i * 0.2}s infinite`,
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
-      {/* Shooting star */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '15%',
-          left: '10%',
-          width: 3,
-          height: 3,
-          backgroundColor: '#fff',
-          borderRadius: '50%',
-          boxShadow: '0 0 4px #fff, -6px -3px 0 1px rgba(255,255,255,0.3), -12px -6px 0 0 rgba(255,255,255,0.1)',
-          animation: 'ag-shoot 3s linear 2s infinite',
-          pointerEvents: 'none',
-        }}
-      />
-      {/* Nebula glow */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '30%',
-          left: '60%',
-          width: 80,
-          height: 60,
-          background: 'radial-gradient(ellipse, rgba(100,50,150,0.15) 0%, transparent 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-        }}
-      />
-    </div>
-  );
-}
-
-function StatBlock({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '0.25rem' }}>
-      <div style={{ fontSize: '0.6rem', color, fontWeight: 'bold' }}>{value}</div>
-      <div style={{ fontSize: '0.25rem', color: '#555', marginTop: '0.15rem' }}>{label}</div>
+    <div
+      style={{
+        fontSize: '0.5rem',
+        color,
+        backgroundColor: color + '15',
+        padding: '0.15rem 0.3rem',
+        borderRadius: 3,
+        border: `1px solid ${color}33`,
+      }}
+    >
+      {label}: {value}
     </div>
   );
 }
