@@ -1,4 +1,4 @@
-export type TaskCategory = 'map' | 'mechanics' | 'art' | 'audio' | 'integration';
+export type TaskCategory = 'producto' | 'codigo' | 'diseno' | 'marketing' | 'infra';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 export type AgentStatus = 'idle' | 'traveling' | 'working' | 'resting';
 export type DashboardMode = 'observe' | 'direct' | 'explore';

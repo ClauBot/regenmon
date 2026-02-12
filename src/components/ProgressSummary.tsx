@@ -10,10 +10,12 @@ export default function ProgressSummary({ tasks }: ProgressSummaryProps) {
   const stats = useMemo(() => {
     const zoneTypeMap = new Map(ZONES.map((z) => [z.id, z.type]));
 
-    const realms: Record<string, { color: string; total: number; completed: number }> = {
-      seed: { color: '#4CAF50', total: 0, completed: 0 },
-      drop: { color: '#2196F3', total: 0, completed: 0 },
-      spark: { color: '#FFC107', total: 0, completed: 0 },
+    const departments: Record<string, { color: string; label: string; total: number; completed: number }> = {
+      producto:  { color: '#FF9800', label: 'P', total: 0, completed: 0 },
+      codigo:    { color: '#4CAF50', label: 'C', total: 0, completed: 0 },
+      diseno:    { color: '#E91E63', label: 'D', total: 0, completed: 0 },
+      marketing: { color: '#2196F3', label: 'M', total: 0, completed: 0 },
+      infra:     { color: '#FFC107', label: 'I', total: 0, completed: 0 },
     };
 
     let total = 0;
@@ -23,23 +25,23 @@ export default function ProgressSummary({ tasks }: ProgressSummaryProps) {
       total++;
       if (task.status === 'completed') completed++;
 
-      const type = zoneTypeMap.get(task.zoneId) ?? 'nexo';
-      const realm = realms[type];
-      if (realm) {
-        realm.total++;
-        if (task.status === 'completed') realm.completed++;
+      const type = zoneTypeMap.get(task.zoneId) ?? 'hq';
+      const dept = departments[type];
+      if (dept) {
+        dept.total++;
+        if (task.status === 'completed') dept.completed++;
       }
     }
 
-    return { realms, total, completed };
+    return { departments, total, completed };
   }, [tasks]);
 
   const globalPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
-  // Realm pips: filled dots based on progress thirds
-  const realmPips = (realm: { total: number; completed: number }) => {
-    if (realm.total === 0) return 0;
-    const pct = realm.completed / realm.total;
+  // Department pips: filled dots based on progress thirds
+  const deptPips = (dept: { total: number; completed: number }) => {
+    if (dept.total === 0) return 0;
+    const pct = dept.completed / dept.total;
     if (pct >= 1) return 3;
     if (pct >= 0.5) return 2;
     if (pct > 0) return 1;
@@ -55,7 +57,7 @@ export default function ProgressSummary({ tasks }: ProgressSummaryProps) {
         borderRadius: 6,
         padding: '0.25rem 0.4rem',
         fontFamily: '"Press Start 2P", cursive',
-        minWidth: 120,
+        minWidth: 140,
       }}
     >
       {/* Global progress line */}
@@ -77,14 +79,14 @@ export default function ProgressSummary({ tasks }: ProgressSummaryProps) {
         <span style={{ fontSize: '0.45rem', color: '#888' }}>{globalPct}%</span>
       </div>
 
-      {/* Realm pips row */}
-      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-        {Object.entries(stats.realms).map(([key, realm]) => {
-          const filled = realmPips(realm);
+      {/* Department pips row — P/C/D/M/I */}
+      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+        {Object.entries(stats.departments).map(([key, dept]) => {
+          const filled = deptPips(dept);
           return (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span style={{ fontSize: '0.35rem', color: realm.color }}>
-                {key === 'seed' ? 'B' : key === 'drop' ? 'O' : 'C'}
+              <span style={{ fontSize: '0.35rem', color: dept.color }}>
+                {dept.label}
               </span>
               {[0, 1, 2].map((i) => (
                 <span
@@ -94,7 +96,7 @@ export default function ProgressSummary({ tasks }: ProgressSummaryProps) {
                     width: 4,
                     height: 4,
                     borderRadius: '50%',
-                    backgroundColor: i < filled ? realm.color : '#333',
+                    backgroundColor: i < filled ? dept.color : '#333',
                   }}
                 />
               ))}

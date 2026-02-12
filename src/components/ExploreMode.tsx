@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { ZONES, CONNECTIONS, REALM_COLORS, ZONE_MAP } from '../worldData';
+import { ZONES, CONNECTIONS, DEPT_COLORS, ZONE_MAP } from '../worldData';
 import { SPECIES_LIST } from '../constants';
 import { AGENT_ROLE_MAP } from '../agentRoles';
 import type { Agent, ZoneTask, PlayerState } from '../agentTypes';
@@ -77,7 +77,7 @@ export default function ExploreMode({
   );
   const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
 
-  const colors = currentZone ? (REALM_COLORS[currentZone.type] ?? REALM_COLORS.nexo) : REALM_COLORS.nexo;
+  const colors = currentZone ? (DEPT_COLORS[currentZone.type] ?? DEPT_COLORS.hq) : DEPT_COLORS.hq;
 
   // Camera offset — center map on player
   const offsetX = currentZone ? 50 - currentZone.cx : 0;
@@ -151,10 +151,10 @@ export default function ExploreMode({
 
           {/* Zone nodes */}
           {ZONES.map((zone) => {
-            const zColors = REALM_COLORS[zone.type] ?? REALM_COLORS.nexo;
+            const zColors = DEPT_COLORS[zone.type] ?? DEPT_COLORS.hq;
             const isCurrent = zone.id === playerState.currentZoneId;
             const isAdj = adjacentZones.some((a) => a.id === zone.id);
-            const size = zone.type === 'nexo' ? 4.5 : zone.isDungeon ? 3 : 3.5;
+            const size = zone.type === 'hq' ? 4.5 : zone.isDungeon ? 3 : 3.5;
 
             return (
               <div
@@ -165,11 +165,11 @@ export default function ExploreMode({
                   top: `${zone.cy}%`,
                   transform: 'translate(-50%, -50%)',
                   width: `${size}%`,
-                  minWidth: zone.type === 'nexo' ? 40 : zone.isDungeon ? 28 : 32,
+                  minWidth: zone.type === 'hq' ? 40 : zone.isDungeon ? 28 : 32,
                   aspectRatio: '1',
                   backgroundColor: zColors.bg,
                   border: `2px solid ${isCurrent ? zColors.border : isAdj ? zColors.border + '88' : zColors.border + '22'}`,
-                  borderRadius: zone.type === 'nexo' ? '50%' : zone.isDungeon ? 3 : 5,
+                  borderRadius: zone.type === 'hq' ? '50%' : zone.isDungeon ? 3 : 5,
                   borderStyle: zone.isDungeon ? 'dashed' : 'solid',
                   display: 'flex',
                   alignItems: 'center',
@@ -194,7 +194,7 @@ export default function ExploreMode({
                     padding: '0 1px',
                   }}
                 >
-                  {zone.isDungeon ? '\u2694' : zone.type === 'nexo' ? '\uD83C\uDF00' : ''}{' '}
+                  {zone.isDungeon ? '\u2694' : zone.type === 'hq' ? '\uD83C\uDF00' : ''}{' '}
                   {zone.name.split(' ').slice(0, 2).join(' ')}
                 </div>
               </div>

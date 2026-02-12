@@ -1,4 +1,5 @@
 export type RegenmonType = 'seed' | 'drop' | 'spark';
+export type DepartmentType = 'producto' | 'codigo' | 'diseno' | 'marketing' | 'infra';
 
 export interface RegenmonSpecies {
   id: string;

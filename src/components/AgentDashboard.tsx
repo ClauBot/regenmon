@@ -5,7 +5,7 @@ import ZeldaWorldMap from './ZeldaWorldMap';
 import AgentPanel from './AgentPanel';
 import AgentChat from './AgentChat';
 import ProgressSummary from './ProgressSummary';
-import { ZONE_MAP, REALM_COLORS } from '../worldData';
+import { ZONE_MAP, DEPT_COLORS } from '../worldData';
 import type { ZoneTask, Agent } from '../agentTypes';
 import type { MapZone } from '../worldData';
 
@@ -319,7 +319,7 @@ function ZoneInfoPanel({
   agents: Agent[];
   onSelectAgent: (id: string) => void;
 }) {
-  const colors = REALM_COLORS[zone.type] ?? REALM_COLORS.nexo;
+  const colors = DEPT_COLORS[zone.type] ?? DEPT_COLORS.hq;
   const agentsHere = agents.filter((a) => a.currentZoneId === zone.id);
   const pending = tasks.filter((t) => t.status === 'pending').length;
   const inProgress = tasks.filter((t) => t.status === 'in_progress').length;

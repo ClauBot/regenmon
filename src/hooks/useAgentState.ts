@@ -4,7 +4,7 @@ import { INITIAL_TASKS } from '../agentTasks';
 import { STARTING_ROLES } from '../agentRoles';
 import { findPath } from './usePathfinding';
 
-const STORAGE_KEY = 'regenmon-agents-v2';
+const STORAGE_KEY = 'regenmon-agents-v3';
 
 // Generate starting agents from roster
 const DEFAULT_AGENTS: Agent[] = STARTING_ROLES.map((role, i) => ({
@@ -28,7 +28,7 @@ const DEFAULT_STATE: AgentDashboardState = {
   tasks: INITIAL_TASKS,
   chatHistory: [],
   dashboardMode: 'observe',
-  playerState: { speciesId: null, currentZoneId: 'nexo', facing: 'down' },
+  playerState: { speciesId: null, currentZoneId: 'hq', facing: 'down' },
 };
 
 function loadState(): AgentDashboardState | null {

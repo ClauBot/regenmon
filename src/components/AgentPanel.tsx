@@ -22,11 +22,11 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  map: '\uD83D\uDDFA\uFE0F Mapa',
-  mechanics: '\u2699\uFE0F Mecánicas',
-  art: '\uD83C\uDFA8 Arte',
-  audio: '\uD83C\uDFB5 Audio',
-  integration: '\uD83D\uDD17 Integración',
+  producto:  '\uD83D\uDCCB Producto',
+  codigo:    '\uD83D\uDCBB Código',
+  diseno:    '\uD83C\uDFA8 Diseño',
+  marketing: '\uD83D\uDCE3 Marketing',
+  infra:     '\u2699\uFE0F Infra',
 };
 
 export default function AgentPanel({
