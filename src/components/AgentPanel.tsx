@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { SPECIES_LIST, TYPE_CONFIG } from '../constants';
-import { ZONE_MAP, ZONES } from '../worldData';
+import { ZONE_MAP } from '../worldData';
 import { AGENT_ROLE_MAP, WORK_PARTICLES } from '../agentRoles';
 import type { Agent, ZoneTask } from '../agentTypes';
 import RegenmonCharacter from './RegenmonCharacter';
@@ -9,11 +9,9 @@ interface AgentPanelProps {
   agent: Agent;
   tasks: ZoneTask[];
   onAssignTask: (agentId: string, taskId: string) => void;
-  onMoveAgent: (agentId: string, zoneId: string) => void;
   onRestAgent: (agentId: string) => void;
   onOpenChat: () => void;
   onToggleAuto: (agentId: string) => void;
-  isDirectMode: boolean;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -35,11 +33,9 @@ export default function AgentPanel({
   agent,
   tasks,
   onAssignTask,
-  onMoveAgent,
   onRestAgent,
   onOpenChat,
   onToggleAuto,
-  isDirectMode,
 }: AgentPanelProps) {
   const species = useMemo(
     () => SPECIES_LIST.find((s) => s.id === agent.speciesId)!,
@@ -58,11 +54,6 @@ export default function AgentPanel({
   const availableTasks = useMemo(
     () => tasks.filter((t) => t.zoneId === agent.currentZoneId && t.status === 'pending' && !t.assignedAgentId),
     [tasks, agent.currentZoneId],
-  );
-
-  const connectedZones = useMemo(
-    () => ZONES.filter((z) => z.id !== agent.currentZoneId),
-    [agent.currentZoneId],
   );
 
   // Upcoming auto-assigned tasks (matching role categories in any zone)
@@ -257,36 +248,24 @@ export default function AgentPanel({
         </button>
       </div>
 
-      {/* Travel selector (shown in direct mode or when manual) */}
-      {(isDirectMode || !agent.autoMode) && agent.status !== 'traveling' && (
-        <div style={{ marginBottom: '0.4rem' }}>
-          <div style={{ fontSize: '0.55rem', color: '#666', marginBottom: 4 }}>Enviar a zona:</div>
-          <select
-            style={{
-              width: '100%',
-              fontSize: '0.55rem',
-              padding: '0.2rem',
-              backgroundColor: '#111',
-              color: '#ddd',
-              border: '1px solid #333',
-              borderRadius: 4,
-              fontFamily: '"Press Start 2P", cursive',
-            }}
-            value=""
-            onChange={(e) => {
-              if (e.target.value) onMoveAgent(agent.id, e.target.value);
-            }}
-          >
-            <option value="">-- Seleccionar --</option>
-            {connectedZones.map((z) => (
-              <option key={z.id} value={z.id}>{z.name}</option>
-            ))}
-          </select>
+      {/* Travel hint */}
+      {agent.status !== 'traveling' && (
+        <div style={{
+          fontSize: '0.5rem',
+          color: '#555',
+          marginBottom: '0.4rem',
+          padding: '0.2rem',
+          backgroundColor: '#111',
+          borderRadius: 4,
+          border: '1px solid #222',
+          textAlign: 'center',
+        }}>
+          Haz clic en una zona del mapa para mover
         </div>
       )}
 
-      {/* Available tasks in zone (direct mode or manual) */}
-      {(isDirectMode || !agent.autoMode) && availableTasks.length > 0 && agent.status === 'idle' && (
+      {/* Available tasks in zone */}
+      {availableTasks.length > 0 && agent.status === 'idle' && (
         <div style={{ marginBottom: '0.4rem' }}>
           <div style={{ fontSize: '0.55rem', color: '#666', marginBottom: 4 }}>
             Tareas disponibles ({availableTasks.length}):

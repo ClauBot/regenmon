@@ -19,9 +19,7 @@ interface AgentSpriteProps {
 
 const STATUS_ICONS: Record<string, string> = {
   working: '\u{1F527}',
-  resting: '\u{1F4A4}',
   traveling: '\u{27A1}\u{FE0F}',
-  idle: '\u{2B50}',
 };
 
 export default function AgentSprite({
@@ -108,6 +106,7 @@ export default function AgentSprite({
         zIndex: isSelected ? 20 : 10,
         transition: 'left 0.1s linear, top 0.1s linear',
         filter: isSelected ? 'drop-shadow(0 0 8px rgba(255,255,255,0.8))' : undefined,
+        animation: 'sprite-appear 0.3s ease-out',
       }}
     >
       {/* Work particle — floating emoji */}
@@ -213,6 +212,10 @@ export default function AgentSprite({
         @keyframes sprite-bob {
           from { transform: translateY(0); }
           to { transform: translateY(-2px); }
+        }
+        @keyframes sprite-appear {
+          from { opacity: 0; transform: translate(-50%, -100%) scale(0.5); }
+          to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
         }
       `}</style>
     </div>

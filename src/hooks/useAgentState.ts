@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { AgentDashboardState, Agent, ChatMessage, DashboardMode } from '../agentTypes';
+import type { AgentDashboardState, Agent, ChatMessage } from '../agentTypes';
 import { INITIAL_TASKS } from '../agentTasks';
 import { STARTING_ROLES } from '../agentRoles';
 import { findPath } from './usePathfinding';
@@ -148,24 +148,6 @@ export function useAgentState() {
     }));
   }, []);
 
-  const setDashboardMode = useCallback((mode: DashboardMode) => {
-    setState((prev) => ({ ...prev, dashboardMode: mode }));
-  }, []);
-
-  const setPlayerSpecies = useCallback((speciesId: string) => {
-    setState((prev) => ({
-      ...prev,
-      playerState: { ...prev.playerState, speciesId },
-    }));
-  }, []);
-
-  const movePlayer = useCallback((zoneId: string, facing: 'up' | 'down' | 'left' | 'right') => {
-    setState((prev) => ({
-      ...prev,
-      playerState: { ...prev.playerState, currentZoneId: zoneId, facing },
-    }));
-  }, []);
-
   const toggleAgentAuto = useCallback((agentId: string) => {
     setState((prev) => ({
       ...prev,
@@ -191,9 +173,6 @@ export function useAgentState() {
     completeTask,
     restAgent,
     sendChat,
-    setDashboardMode,
-    setPlayerSpecies,
-    movePlayer,
     toggleAgentAuto,
     updateSimulation,
     resetState,
