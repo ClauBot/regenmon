@@ -1,9 +1,9 @@
 import type { RegenmonType, RegenmonSpecies } from './types';
 
-export const TYPE_CONFIG: Record<RegenmonType, { label: string; color: string; bg: string }> = {
-  seed:  { label: 'Semilla', color: '#4CAF50', bg: '#E8F5E9' },
-  drop:  { label: 'Gota',    color: '#2196F3', bg: '#E3F2FD' },
-  spark: { label: 'Chispa',  color: '#FFC107', bg: '#FFF8E1' },
+export const TYPE_CONFIG: Record<RegenmonType, { label: string; emoji: string; color: string; bg: string }> = {
+  seed:  { label: 'Semilla', emoji: '🌱', color: '#4CAF50', bg: '#E8F5E9' },
+  drop:  { label: 'Gota',    emoji: '💧', color: '#2196F3', bg: '#E3F2FD' },
+  spark: { label: 'Chispa',  emoji: '✨', color: '#FFC107', bg: '#FFF8E1' },
 };
 
 export const SPECIES_LIST: RegenmonSpecies[] = [

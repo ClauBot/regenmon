@@ -82,7 +82,7 @@ export default function SpeciesDetail({ species, onClose }: SpeciesDetailProps) 
             borderRadius: '8px',
             border: `2px solid ${config.color}44`,
             marginBottom: '1rem',
-            height: 200,
+            height: 340,
           }}
         >
           {/* Inline world background */}
@@ -90,7 +90,7 @@ export default function SpeciesDetail({ species, onClose }: SpeciesDetailProps) 
             <WorldSceneInline type={species.type} />
           </div>
 
-          {/* Character centered */}
+          {/* Character centered — same sm render as catalog, scaled up */}
           <div
             style={{
               position: 'absolute',
@@ -99,11 +99,18 @@ export default function SpeciesDetail({ species, onClose }: SpeciesDetailProps) 
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem',
+              paddingBottom: '2rem',
             }}
           >
-            <div style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.3))' }}>
-              <RegenmonCharacter species={species} size="lg" animate />
+            <div
+              style={{
+                transform: 'scale(4)',
+                transformOrigin: 'center center',
+                filter: `drop-shadow(0 0 3px ${config.color}66)`,
+                imageRendering: 'pixelated',
+              }}
+            >
+              <RegenmonCharacter species={species} size="sm" animate />
             </div>
           </div>
 
@@ -114,8 +121,8 @@ export default function SpeciesDetail({ species, onClose }: SpeciesDetailProps) 
               bottom: 0,
               left: 0,
               right: 0,
-              padding: '0.5rem 0.75rem',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+              padding: '0.6rem 0.75rem',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-end',

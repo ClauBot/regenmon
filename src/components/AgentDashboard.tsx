@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useAgentState } from '../hooks/useAgentState';
 import { useAgentSimulation } from '../hooks/useAgentSimulation';
 import ZeldaWorldMap from './ZeldaWorldMap';
@@ -34,23 +34,25 @@ export default function AgentDashboard({ onClose }: AgentDashboardProps) {
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<PanelView>('panel');
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panTarget, setPanTarget] = useState<{ x: number; y: number } | null>(null);
 
   const selectedAgent = state.agents.find((a) => a.id === selectedAgentId) ?? null;
 
-  // Only active agents visible on map and quick-select
-  const activeAgents = useMemo(
-    () => state.agents.filter((a) => a.status === 'working' || a.status === 'traveling'),
-    [state.agents],
-  );
-
-  const activeCount = activeAgents.length;
+  const activeCount = state.agents.filter((a) => a.status === 'working' || a.status === 'traveling').length;
 
   const handleSelectAgent = useCallback((id: string | null) => {
     setSelectedAgentId(id);
     setSelectedZoneId(null);
     setPanelView('panel');
     setPanelOpen(id !== null);
-  }, []);
+    if (id) {
+      const agent = state.agents.find((a) => a.id === id);
+      if (agent) {
+        const zone = ZONE_MAP.get(agent.currentZoneId);
+        if (zone) setPanTarget({ x: zone.cx, y: zone.cy });
+      }
+    }
+  }, [state.agents]);
 
   const handleSelectZone = useCallback((id: string | null) => {
     setSelectedZoneId(id);
@@ -147,84 +149,29 @@ export default function AgentDashboard({ onClose }: AgentDashboardProps) {
         </div>
       </div>
 
+      {/* Agent roster bar */}
+      <AgentRosterBar
+        agents={state.agents}
+        selectedAgentId={selectedAgentId}
+        onSelectAgent={handleSelectAgent}
+      />
+
       {/* Map-hero content */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {/* Full-viewport map */}
         <ZeldaWorldMap
-          agents={activeAgents}
+          agents={state.agents}
           tasks={state.tasks}
           selectedAgentId={selectedAgentId}
           selectedZoneId={selectedZoneId}
           onSelectAgent={handleSelectAgent}
           onSelectZone={handleSelectZone}
+          panTarget={panTarget}
         />
 
         {/* Compact progress HUD — top-left corner */}
         <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 20, pointerEvents: 'none' }}>
           <ProgressSummary tasks={state.tasks} />
-        </div>
-
-        {/* Floating quick-select bar — bottom center */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 20,
-            display: 'flex',
-            gap: '0.3rem',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            maxWidth: '90%',
-          }}
-        >
-          {activeAgents.length > 0 ? (
-            activeAgents.map((agent) => {
-              const isSelected = selectedAgentId === agent.id;
-              return (
-                <button
-                  key={agent.id}
-                  type="button"
-                  onClick={() => handleSelectAgent(isSelected ? null : agent.id)}
-                  style={{
-                    fontSize: '0.5rem',
-                    padding: '0.15rem 0.3rem',
-                    backgroundColor: isSelected ? '#333ee' : '#1a1a1aee',
-                    color: isSelected ? '#fff' : '#aaa',
-                    border: `1px solid ${isSelected ? '#FFC107' : '#444'}`,
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontFamily: '"Press Start 2P", cursive',
-                    backdropFilter: 'blur(4px)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {agent.name}
-                  <span style={{
-                    color: agent.status === 'working' ? '#4CAF50' : '#FFC107',
-                    marginLeft: 4,
-                  }}>
-                    {agent.status === 'working' ? '\u25CF' : '\u25B6'}
-                  </span>
-                </button>
-              );
-            })
-          ) : (
-            <div
-              style={{
-                fontSize: '0.5rem',
-                color: '#666',
-                backgroundColor: '#1a1a1aee',
-                padding: '0.2rem 0.5rem',
-                borderRadius: 4,
-                border: '1px solid #333',
-                backdropFilter: 'blur(4px)',
-              }}
-            >
-              Esperando asignaciones...
-            </div>
-          )}
         </div>
 
         {/* Slide-in panel overlay */}
@@ -302,6 +249,103 @@ export default function AgentDashboard({ onClose }: AgentDashboardProps) {
           to { transform: translateX(0); }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ─── Agent Roster Bar ───
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  working: '#4CAF50',
+  traveling: '#FFC107',
+  idle: '#888',
+  resting: '#9C27B0',
+};
+
+function AgentRosterBar({
+  agents,
+  selectedAgentId,
+  onSelectAgent,
+}: {
+  agents: Agent[];
+  selectedAgentId: string | null;
+  onSelectAgent: (id: string | null) => void;
+}) {
+  return (
+    <div
+      style={{
+        zIndex: 30,
+        backgroundColor: '#111',
+        borderBottom: '1px solid #282828',
+        padding: '0.25rem 0.5rem',
+        display: 'flex',
+        gap: '0.35rem',
+        overflowX: 'auto',
+        flexShrink: 0,
+      }}
+    >
+      {agents.map((agent) => {
+        const isSelected = selectedAgentId === agent.id;
+        const dotColor = STATUS_DOT_COLORS[agent.status] ?? '#888';
+        return (
+          <button
+            key={agent.id}
+            type="button"
+            onClick={() => onSelectAgent(isSelected ? null : agent.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: '0.45rem',
+              padding: '0.2rem 0.35rem',
+              backgroundColor: isSelected ? '#222' : '#1a1a1a',
+              color: isSelected ? '#fff' : '#aaa',
+              border: `1px solid ${isSelected ? '#FFC107' : '#333'}`,
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontFamily: '"Press Start 2P", cursive',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {/* Status dot */}
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: dotColor,
+                flexShrink: 0,
+                boxShadow: agent.status === 'working' ? `0 0 4px ${dotColor}` : undefined,
+              }}
+            />
+            {agent.name}
+            {/* Mini energy bar */}
+            <span
+              style={{
+                display: 'inline-block',
+                width: 20,
+                height: 3,
+                backgroundColor: '#000',
+                borderRadius: 1,
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  display: 'block',
+                  width: `${agent.energy}%`,
+                  height: '100%',
+                  backgroundColor: agent.energy > 50 ? '#4CAF50' : agent.energy > 25 ? '#FFC107' : '#f44336',
+                  borderRadius: 1,
+                }}
+              />
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

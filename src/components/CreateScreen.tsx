@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { NAME_MIN, NAME_MAX } from '../constants';
+import { NAME_MIN, NAME_MAX, TYPE_CONFIG } from '../constants';
+import type { RegenmonType } from '../types';
 
 interface CreateScreenProps {
-  onCreate: (name: string) => void;
+  onCreate: (name: string, type: RegenmonType) => void;
   onDashboard: () => void;
 }
 
+const TYPES: RegenmonType[] = ['seed', 'drop', 'spark'];
+
 export default function CreateScreen({ onCreate, onDashboard }: CreateScreenProps) {
   const [name, setName] = useState('');
+  const [selectedType, setSelectedType] = useState<RegenmonType | null>(null);
 
-  const canCreate = name.trim().length >= NAME_MIN;
+  const nameValid = name.trim().length >= NAME_MIN;
+  const canCreate = nameValid && selectedType !== null;
 
   const handleSubmit = () => {
-    if (canCreate) {
-      onCreate(name.trim());
+    if (canCreate && selectedType) {
+      onCreate(name.trim(), selectedType);
     }
   };
 
@@ -23,6 +28,7 @@ export default function CreateScreen({ onCreate, onDashboard }: CreateScreenProp
         Crea tu Regenmon
       </h2>
 
+      {/* Name input */}
       <div className="nes-container" style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(255,255,255,0.95)' }}>
         <label htmlFor="regenmon-name" style={{ display: 'block', marginBottom: '0.5rem' }}>
           Nombre
@@ -49,7 +55,7 @@ export default function CreateScreen({ onCreate, onDashboard }: CreateScreenProp
 
         {name.length > 0 && name.length < NAME_MIN && (
           <p className="nes-text is-error" style={{ fontSize: '0.7rem', marginTop: '0.25rem' }}>
-            El nombre debe tener al menos 2 caracteres
+            El nombre debe tener al menos {NAME_MIN} caracteres
           </p>
         )}
 
@@ -60,10 +66,53 @@ export default function CreateScreen({ onCreate, onDashboard }: CreateScreenProp
         )}
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: '0.65rem', color: '#ccc', marginBottom: '1.5rem' }}>
-        Un Regenmon aleatorio eclosionará de tu huevo
-      </p>
+      {/* Type selector */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#ccc', marginBottom: '0.75rem' }}>
+          Elige un tipo
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+          {TYPES.map((type) => {
+            const config = TYPE_CONFIG[type];
+            const isSelected = selectedType === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setSelectedType(type)}
+                style={{
+                  flex: '1 1 0',
+                  maxWidth: 140,
+                  padding: '0.75rem 0.5rem',
+                  backgroundColor: isSelected ? config.bg : '#222',
+                  border: `3px solid ${isSelected ? config.color : '#444'}`,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isSelected ? `0 0 12px ${config.color}44` : 'none',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>
+                  {config.emoji}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.55rem',
+                    fontFamily: '"Press Start 2P", cursive',
+                    color: isSelected ? config.color : '#888',
+                  }}
+                >
+                  {config.label}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* Create button */}
       <div style={{ textAlign: 'center' }}>
         <button
           type="button"

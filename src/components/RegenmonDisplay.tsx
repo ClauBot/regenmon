@@ -7,16 +7,17 @@ interface RegenmonDisplayProps {
   regenmon: Regenmon;
   onReset: () => void;
   onDashboard: () => void;
+  onFeed: () => void;
+  onPlay: () => void;
   musicToggle: () => void;
   isMusicPlaying: boolean;
 }
 
 const statKeys = ['happiness', 'energy', 'hunger'] as const;
 
-export default function RegenmonDisplay({ regenmon, onReset, onDashboard, musicToggle, isMusicPlaying }: RegenmonDisplayProps) {
+export default function RegenmonDisplay({ regenmon, onReset, onDashboard, onFeed, onPlay, musicToggle, isMusicPlaying }: RegenmonDisplayProps) {
   const typeConfig = TYPE_CONFIG[regenmon.type];
   const species = SPECIES_LIST.find((s) => s.id === regenmon.speciesId);
-  const speciesName = species?.speciesName ?? 'Desconocido';
 
   return (
     <div style={{ position: 'relative', zIndex: 2 }}>
@@ -31,7 +32,7 @@ export default function RegenmonDisplay({ regenmon, onReset, onDashboard, musicT
         }}
       >
         <h1 style={{ fontSize: '1.2rem', margin: 0, color: '#fff', textShadow: '2px 2px 0 #000' }}>
-          Regenmon
+          🥚 Regenmon
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
@@ -70,17 +71,43 @@ export default function RegenmonDisplay({ regenmon, onReset, onDashboard, musicT
           {regenmon.name}
         </p>
         <p style={{ textAlign: 'center', fontSize: '0.6rem', color: '#666', marginBottom: '0.5rem' }}>
-          {speciesName} — {typeConfig.label}
+          {species?.speciesName ?? typeConfig.label} — {typeConfig.label}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '0.5rem 0' }}>
-          {species && (
+          {species ? (
             <RegenmonCharacter
               species={species}
               size="lg"
               stats={{ happiness: regenmon.happiness, energy: regenmon.energy, hunger: regenmon.hunger }}
             />
+          ) : (
+            <div style={{ fontSize: '5rem', lineHeight: 1.2, textAlign: 'center' }}>
+              {typeConfig.emoji}
+            </div>
           )}
         </div>
+      </div>
+
+      {/* Interaction buttons */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'center' }}>
+        <button
+          type="button"
+          className="nes-btn is-success"
+          style={{ fontSize: '0.7rem', flex: 1 }}
+          onClick={onFeed}
+          disabled={regenmon.energy < 5}
+        >
+          🍎 Alimentar
+        </button>
+        <button
+          type="button"
+          className="nes-btn is-warning"
+          style={{ fontSize: '0.7rem', flex: 1 }}
+          onClick={onPlay}
+          disabled={regenmon.energy < 10}
+        >
+          🎮 Jugar
+        </button>
       </div>
 
       {/* Stats */}

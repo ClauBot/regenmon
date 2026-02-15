@@ -20,6 +20,7 @@ interface AgentSpriteProps {
 const STATUS_ICONS: Record<string, string> = {
   working: '\u{1F527}',
   traveling: '\u{27A1}\u{FE0F}',
+  resting: '\u{1F4A4}',
 };
 
 export default function AgentSprite({
@@ -106,6 +107,7 @@ export default function AgentSprite({
         zIndex: isSelected ? 20 : 10,
         transition: 'left 0.1s linear, top 0.1s linear',
         filter: isSelected ? 'drop-shadow(0 0 8px rgba(255,255,255,0.8))' : undefined,
+        opacity: agent.status === 'resting' ? 0.6 : 1,
         animation: 'sprite-appear 0.3s ease-out',
       }}
     >
@@ -127,7 +129,7 @@ export default function AgentSprite({
         </div>
       )}
       {/* Status bubble */}
-      {agent.status !== 'working' && (
+      {agent.status !== 'working' && STATUS_ICONS[agent.status] && (
         <div
           style={{
             position: 'absolute',
@@ -139,7 +141,7 @@ export default function AgentSprite({
             pointerEvents: 'none',
           }}
         >
-          {STATUS_ICONS[agent.status] ?? ''}
+          {STATUS_ICONS[agent.status]}
         </div>
       )}
       {/* Mini energy bar */}

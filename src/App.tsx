@@ -9,11 +9,11 @@ import Dashboard from './components/Dashboard';
 import AgentDashboard from './components/AgentDashboard';
 import SpaceTravel from './components/SpaceTravel';
 import { ConfirmResetDialog } from './components/ConfirmResetDialog';
-import type { RegenmonSpecies } from './types';
+import type { RegenmonType, RegenmonSpecies } from './types';
 import './App.css';
 
 function App() {
-  const { regenmon, create, reset } = useRegenmon();
+  const { regenmon, create, reset, feed, play } = useRegenmon();
   const { isPlaying, toggle: musicToggle } = useChiptuneMusic();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -21,8 +21,8 @@ function App() {
   const [hatching, setHatching] = useState(false);
   const [hatchSpecies, setHatchSpecies] = useState<RegenmonSpecies | null>(null);
 
-  const handleCreate = (name: string) => {
-    const species = create(name);
+  const handleCreate = (name: string, type: RegenmonType) => {
+    const species = create(name, type);
     setHatchSpecies(species);
     setHatching(true);
   };
@@ -115,6 +115,8 @@ function App() {
           regenmon={regenmon}
           onReset={handleResetRequest}
           onDashboard={() => setShowDashboard(true)}
+          onFeed={feed}
+          onPlay={play}
           musicToggle={musicToggle}
           isMusicPlaying={isPlaying}
         />

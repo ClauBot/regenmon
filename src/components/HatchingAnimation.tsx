@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import type { RegenmonSpecies } from '../types';
+import { TYPE_CONFIG } from '../constants';
+import RegenmonCharacter from './RegenmonCharacter';
 
 interface HatchingAnimationProps {
-  species: { emoji: string; speciesName: string };
+  species: RegenmonSpecies;
   onComplete: () => void;
 }
 
@@ -9,6 +12,7 @@ const FRAME_DURATION = 800;
 
 export default function HatchingAnimation({ species, onComplete }: HatchingAnimationProps) {
   const [frame, setFrame] = useState(0);
+  const config = TYPE_CONFIG[species.type];
 
   useEffect(() => {
     if (frame < 4) {
@@ -16,7 +20,8 @@ export default function HatchingAnimation({ species, onComplete }: HatchingAnima
       return () => clearTimeout(timer);
     }
 
-    const completeTimer = setTimeout(onComplete, FRAME_DURATION);
+    // Give more time to admire the reveal
+    const completeTimer = setTimeout(onComplete, 2500);
     return () => clearTimeout(completeTimer);
   }, [frame, onComplete]);
 
@@ -29,7 +34,7 @@ export default function HatchingAnimation({ species, onComplete }: HatchingAnima
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
         zIndex: 9999,
         fontFamily: '"Press Start 2P", cursive',
       }}
@@ -59,11 +64,9 @@ export default function HatchingAnimation({ species, onComplete }: HatchingAnima
           100% { opacity: 0; transform: scale(2); }
         }
 
-        @keyframes hatch-bounce-in {
-          0% { opacity: 0; transform: scale(0); }
-          50% { opacity: 1; transform: scale(1.3); }
-          70% { transform: scale(0.9); }
-          100% { transform: scale(1); }
+        @keyframes hatch-reveal {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
         }
 
         @keyframes hatch-sparkle {
@@ -105,10 +108,6 @@ export default function HatchingAnimation({ species, onComplete }: HatchingAnima
           animation: hatch-flash 0.7s ease-out forwards;
         }
 
-        .hatch-frame-reveal {
-          animation: hatch-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
         .hatch-sparkle-particle {
           position: absolute;
           font-size: 1.5rem;
@@ -148,72 +147,47 @@ export default function HatchingAnimation({ species, onComplete }: HatchingAnima
         </div>
       )}
 
-      {/* Frame 4: Species reveal with sparkles */}
+      {/* Frame 4: Species reveal — same render as catalog, scaled up */}
       {frame === 4 && (
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="hatch-frame-reveal" style={{ fontSize: '5rem', lineHeight: 1.2 }}>
-            {species.emoji}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2rem',
+            animation: 'hatch-reveal 0.5s ease-out forwards',
+          }}
+        >
+          <div
+            style={{
+              transform: 'scale(4)',
+              transformOrigin: 'center center',
+              filter: `drop-shadow(0 0 3px ${config.color}88)`,
+              imageRendering: 'pixelated',
+            }}
+          >
+            <RegenmonCharacter species={species} size="sm" animate />
           </div>
-
-          {/* Sparkle particles */}
-          <span
-            className="hatch-sparkle-particle"
-            style={{
-              '--sx': '-30px', '--sy': '-40px', '--ex': '-50px', '--ey': '-70px',
-              animationDelay: '0s',
-            } as React.CSSProperties}
-          >
-            ✨
-          </span>
-          <span
-            className="hatch-sparkle-particle"
-            style={{
-              '--sx': '30px', '--sy': '-35px', '--ex': '55px', '--ey': '-65px',
-              animationDelay: '0.15s',
-            } as React.CSSProperties}
-          >
-            ✨
-          </span>
-          <span
-            className="hatch-sparkle-particle"
-            style={{
-              '--sx': '-40px', '--sy': '20px', '--ex': '-60px', '--ey': '45px',
-              animationDelay: '0.3s',
-            } as React.CSSProperties}
-          >
-            ✨
-          </span>
-          <span
-            className="hatch-sparkle-particle"
-            style={{
-              '--sx': '35px', '--sy': '25px', '--ex': '60px', '--ey': '50px',
-              animationDelay: '0.1s',
-            } as React.CSSProperties}
-          >
-            ✨
-          </span>
-          <span
-            className="hatch-sparkle-particle"
-            style={{
-              '--sx': '0px', '--sy': '-50px', '--ex': '0px', '--ey': '-80px',
-              animationDelay: '0.2s',
-            } as React.CSSProperties}
-          >
-            ✨
-          </span>
 
           <p
             style={{
-              position: 'absolute',
-              top: '100%',
-              marginTop: '1.5rem',
               color: '#fff',
-              fontSize: '0.8rem',
+              fontSize: '0.9rem',
               textAlign: 'center',
-              whiteSpace: 'nowrap',
+              marginTop: '6rem',
             }}
           >
-            {species.speciesName}
+            {species.emoji} {species.speciesName}
+          </p>
+
+          <p
+            style={{
+              color: config.color,
+              fontSize: '0.4rem',
+              textAlign: 'center',
+            }}
+          >
+            {config.label}
           </p>
         </div>
       )}

@@ -16,4 +16,5 @@ export interface Regenmon {
   energy: number;
   hunger: number;
   createdAt: string;
+  lastTick: string;
 }
